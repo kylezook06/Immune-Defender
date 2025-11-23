@@ -8,6 +8,8 @@ let particles = [];
 let powerups = [];
 let stars = [];
 let enemyBullets = [];
+let shootSounds = [];
+let implosionSound;
 
 let enemyDir = 1; // horizontal direction of enemy swarm
 let enemySpeed = 1.2;
@@ -29,6 +31,29 @@ let shotDelay = baseShotDelay;
 
 const rapidFire = { active: false, timer: 0, duration: 8000 };
 const shield = { active: false, timer: 0, duration: 6500 };
+const soundBasePath = "assets/";
+
+function preload() {
+  if (typeof loadSound !== "function") {
+    console.warn("p5.sound is not available; skipping audio setup.");
+    return;
+  }
+
+  soundFormats("wav");
+  const shotFiles = [
+    "Torpedo-Launch-01.wav",
+    "Torpedo-Launch-02.wav",
+    "Torpedo-Launch-03.wav",
+    "Torpedo-Launch-04.wav"
+  ];
+  shootSounds = shotFiles
+    .map(path => loadOptionalSound(soundBasePath + path, 0.8))
+    .filter(Boolean);
+  implosionSound = loadOptionalSound(
+    soundBasePath + "Underwater-Implosion-1.wav",
+    0.65
+  );
+}
 
 function setup() {
   createCanvas(800, 600);
@@ -586,6 +611,7 @@ function maybeDropPowerup(enemy) {
 function loseLife() {
   lives--;
   spawnEngulfParticles(player.x, player.y, "hit");
+  playImplosionSound();
   bullets = [];
   enemies = [];
   powerups = [];
@@ -618,6 +644,43 @@ function activatePowerup(kind) {
   } else if (kind === "shield") {
     shield.active = true;
     shield.timer = millis();
+  }
+}
+
+function loadOptionalSound(path, volume) {
+  let soundFile = null;
+  try {
+    soundFile = loadSound(
+      path,
+      snd => {
+        snd.setVolume?.(volume);
+        soundFile = snd;
+      },
+      () => {
+        console.warn(`Optional sound missing or failed to load: ${path}`);
+        soundFile = null;
+      }
+    );
+  } catch (err) {
+    console.warn(`Sound library error while loading ${path}:`, err);
+    soundFile = null;
+  }
+  return soundFile;
+}
+
+function playShootSound() {
+  if (!shootSounds.length) return;
+  const snd = random(shootSounds);
+  if (!snd) return;
+  if (!snd.isLoaded || snd.isLoaded()) {
+    snd.play();
+  }
+}
+
+function playImplosionSound() {
+  if (!implosionSound) return;
+  if (!implosionSound.isLoaded || implosionSound.isLoaded()) {
+    implosionSound.play();
   }
 }
 
