@@ -514,6 +514,7 @@ function handleCollisions() {
         spawnEngulfParticles(player.x, player.y, "shield");
       } else {
         loseLife();
+        return; // arrays are reset in loseLife; exit to avoid stale references
       }
     }
   }
