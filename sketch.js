@@ -11,7 +11,10 @@ let enemyBullets = [];
 
 let enemyDir = 1; // horizontal direction of enemy swarm
 let enemySpeed = 1.2;
-let gameState = "title"; // "title", "play", "gameover"
+let gameState = "title"; // "title", "play", "respawn", "gameover"
+
+const respawnDuration = 3000; // ms delay after losing a life
+let respawnTimer = 0;
 
 let score = 0;
 let lives = 3;
@@ -51,6 +54,7 @@ function resetGame() {
   enemyBullets = [];
   rapidFire.active = false;
   shield.active = false;
+  respawnTimer = 0;
   initPlayer();
   spawnWave();
   gameState = "title";
@@ -139,6 +143,20 @@ function draw() {
     drawPowerups();
     drawParticles();
     drawWaveLabel();
+  } else if (gameState === "respawn") {
+    updateStars();
+    updateParticles();
+
+    drawHud();
+    drawPlayer();
+    drawParticles();
+    drawRespawnMessage();
+
+    const elapsed = millis() - respawnTimer;
+    if (elapsed >= respawnDuration) {
+      spawnWave();
+      gameState = "play";
+    }
   } else if (gameState === "gameover") {
     drawHud();
     drawPlayer();
@@ -350,6 +368,16 @@ function drawEndScreen(mainText, subText) {
   text(mainText, width / 2, height / 2 - 20);
   textSize(16);
   text(subText, width / 2, height / 2 + 20);
+}
+
+function drawRespawnMessage() {
+  fill(255);
+  textAlign(CENTER, CENTER);
+  textSize(24);
+  text(`Oh no! ${lives} lives left`, width / 2, height / 2 - 20);
+  textSize(18);
+  const remaining = ceil((respawnDuration - (millis() - respawnTimer)) / 1000);
+  text(`Respawning in ${remaining}`, width / 2, height / 2 + 16);
 }
 
 function drawWaveLabel() {
@@ -566,7 +594,8 @@ function loseLife() {
   if (lives <= 0) {
     gameState = "gameover";
   } else {
-    spawnWave();
+    respawnTimer = millis();
+    gameState = "respawn";
   }
 }
 
