@@ -755,6 +755,5 @@ function tryShoot() {
     vy: -8
   });
 
-  playShootSound();
   lastShotTime = now;
 }
