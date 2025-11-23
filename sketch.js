@@ -7,16 +7,18 @@ let enemies = [];
 let particles = [];
 let powerups = [];
 let stars = [];
+let enemyBullets = [];
 
 let enemyDir = 1; // horizontal direction of enemy swarm
 let enemySpeed = 1.2;
-let gameState = "title"; // "title", "play", "gameover", "win"
+let gameState = "title"; // "title", "play", "gameover"
 
 let score = 0;
 let lives = 3;
-let wave = 1;
-let waveAnnounceTimer = 0;
-const maxWaves = 6;
+let level = 1;
+let stage = 1; // 1-6 within a level
+let announceTimer = 0;
+const stagesPerLevel = 6;
 
 let lastShotTime = 0;
 const baseShotDelay = 260; // ms between shots
@@ -37,7 +39,8 @@ function setup() {
 function resetGame() {
   score = 0;
   lives = 3;
-  wave = 1;
+  level = 1;
+  stage = 1;
   enemyDir = 1;
   enemySpeed = 1.2;
   shotDelay = baseShotDelay;
@@ -45,6 +48,7 @@ function resetGame() {
   enemies = [];
   particles = [];
   powerups = [];
+  enemyBullets = [];
   rapidFire.active = false;
   shield.active = false;
   initPlayer();
@@ -77,11 +81,12 @@ function spawnWave() {
   enemies = [];
   bullets = [];
   powerups = [];
+  enemyBullets = [];
   enemyDir = 1;
 
-  const cols = min(10, 6 + floor((wave - 1) / 1));
-  const rows = min(6, 3 + floor((wave - 1) / 2));
-  const spacingX = 80 - min(16, wave * 2);
+  const cols = min(10, 6 + floor((stage - 1) / 1) + floor((level - 1) / 2));
+  const rows = min(6, 3 + floor((stage - 1) / 2) + floor((level - 1) / 2));
+  const spacingX = 80 - min(16, stage * 2 + level);
   const spacingY = 55;
   const offsetX = (width - (cols - 1) * spacingX) / 2;
   const offsetY = 80;
@@ -100,8 +105,8 @@ function spawnWave() {
     }
   }
 
-  enemySpeed = 1.2 + (wave - 1) * 0.18;
-  waveAnnounceTimer = millis();
+  enemySpeed = 1.2 + (stage - 1) * 0.18 + (level - 1) * 0.2;
+  announceTimer = millis();
 }
 
 // ---------- MAIN LOOP ----------
@@ -120,6 +125,7 @@ function draw() {
     handleInput();
     updateStars();
     updateBullets();
+    updateEnemyBullets();
     updateEnemies();
     updatePowerups();
     updateParticles();
@@ -139,11 +145,6 @@ function draw() {
     drawEnemies();
     drawParticles();
     drawEndScreen("INFECTION OVERWHELMED DEFENSE", "Press ENTER to try again");
-  } else if (gameState === "win") {
-    drawHud();
-    drawPlayer();
-    drawParticles();
-    drawEndScreen("INFECTION NEUTRALIZED!", "Press ENTER to play again");
   }
 
   drawScanlines();
@@ -181,18 +182,19 @@ function drawHud() {
   textAlign(LEFT, TOP);
   text("SCORE: " + score, 16, 10);
   text("LIVES: " + lives, 16, 32);
-  text("WAVE: " + wave + "/" + maxWaves, 16, 54);
+  text("LEVEL: " + level, 16, 54);
+  text("STAGE: " + stage + "/" + stagesPerLevel, 16, 76);
 
   if (rapidFire.active) {
     fill(180, 230, 255);
-    text("ANTIBODY BOOST", 16, 76);
-    drawPowerBar(16, 94, rapidFire.timer, rapidFire.duration);
+    text("ANTIBODY BOOST", 16, 98);
+    drawPowerBar(16, 116, rapidFire.timer, rapidFire.duration);
   }
 
   if (shield.active) {
     fill(120, 255, 220);
-    text("MEMBRANE SHIELD", 16, rapidFire.active ? 116 : 76);
-    const yBar = rapidFire.active ? 134 : 94;
+    text("MEMBRANE SHIELD", 16, rapidFire.active ? 138 : 98);
+    const yBar = rapidFire.active ? 156 : 116;
     drawPowerBar(16, yBar, shield.timer, shield.duration, color(120, 255, 220));
   }
 }
@@ -288,6 +290,11 @@ function drawBullets() {
     fill(255, 255, 255);
     ellipse(b.x, b.y, 8, 14);
   }
+
+  for (let eb of enemyBullets) {
+    fill(220, 90, 90);
+    ellipse(eb.x, eb.y, 8, 12);
+  }
 }
 
 function drawParticles() {
@@ -346,11 +353,13 @@ function drawEndScreen(mainText, subText) {
 }
 
 function drawWaveLabel() {
-  if (millis() - waveAnnounceTimer < 1600) {
+  const elapsed = millis() - announceTimer;
+  if (elapsed < 1600) {
     fill(255, 255, 255, 180);
     textAlign(CENTER, CENTER);
     textSize(22);
-    text("Wave " + wave, width / 2, 90);
+    const label = elapsed < 800 ? `Stage ${stage}` : `Level ${level}`;
+    text(label, width / 2, 90);
   }
 }
 
@@ -385,6 +394,13 @@ function updateBullets() {
   bullets = bullets.filter(b => b.y > -20);
 }
 
+function updateEnemyBullets() {
+  for (let eb of enemyBullets) {
+    eb.y += eb.vy;
+  }
+  enemyBullets = enemyBullets.filter(eb => eb.y < height + 30);
+}
+
 function updateEnemies() {
   if (enemies.length === 0) return;
 
@@ -406,6 +422,8 @@ function updateEnemies() {
   for (let e of enemies) {
     e.y += sin(frameCount * 0.05 + e.x * 0.02) * 0.2;
   }
+
+  maybeEnemyFire();
 }
 
 function updatePowerups() {
@@ -421,6 +439,24 @@ function updatePowerups() {
 
   if (shield.active && millis() - shield.timer > shield.duration) {
     shield.active = false;
+  }
+}
+
+function maybeEnemyFire() {
+  if (stage < 2 || gameState !== "play") return;
+
+  const difficultyRamp = (stage - 1) * 0.35 + (level - 1) * 0.4;
+  const volleyChance = 0.0035 + difficultyRamp * 0.0015;
+  if (random() > volleyChance) return;
+
+  const shooters = min(enemies.length, 1 + floor((stage + level) / 3));
+  const pick = shuffle([...enemies]).slice(0, shooters);
+  for (let e of pick) {
+    enemyBullets.push({
+      x: e.x,
+      y: e.y + e.h / 2,
+      vy: 2.4 + stage * 0.25 + level * 0.2
+    });
   }
 }
 
@@ -450,9 +486,9 @@ function handleCollisions() {
         if (e.hp <= 0) {
           maybeDropPowerup(e);
           enemies.splice(j, 1);
-          score += 100 + wave * 10;
+          score += 100 + stage * 10 + (level - 1) * 20;
         } else {
-          score += 40 + wave * 4;
+          score += 40 + stage * 4 + (level - 1) * 8;
         }
         break;
       }
@@ -465,6 +501,20 @@ function handleCollisions() {
     if (dist(pu.x, pu.y, player.x, player.y) < 30) {
       powerups.splice(i, 1);
       activatePowerup(pu.kind);
+    }
+  }
+
+  // enemy bullets vs player
+  for (let i = enemyBullets.length - 1; i >= 0; i--) {
+    const eb = enemyBullets[i];
+    if (dist(eb.x, eb.y, player.x, player.y) < player.w / 2 + 4) {
+      enemyBullets.splice(i, 1);
+      if (shield.active) {
+        shield.active = false;
+        spawnEngulfParticles(player.x, player.y, "shield");
+      } else {
+        loseLife();
+      }
     }
   }
 
@@ -510,6 +560,7 @@ function loseLife() {
   bullets = [];
   enemies = [];
   powerups = [];
+  enemyBullets = [];
   enemyDir = 1;
   if (lives <= 0) {
     gameState = "gameover";
@@ -520,12 +571,12 @@ function loseLife() {
 
 function checkWinLose() {
   if (enemies.length === 0) {
-    if (wave >= maxWaves) {
-      gameState = "win";
-    } else {
-      wave++;
-      spawnWave();
+    stage++;
+    if (stage > stagesPerLevel) {
+      stage = 1;
+      level++;
     }
+    spawnWave();
   }
 }
 
@@ -593,7 +644,7 @@ function keyPressed() {
   }
 
   if (keyCode === ENTER) {
-    if (gameState === "title" || gameState === "gameover" || gameState === "win") {
+    if (gameState === "title" || gameState === "gameover") {
       resetGame();
       gameState = "play";
     }
