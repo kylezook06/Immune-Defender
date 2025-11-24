@@ -190,9 +190,15 @@ function spawnWave() {
   const eLevel = effectiveLevel();
   const waveCounts = {};
 
-  const cols = min(10, 6 + floor((stage - 1) / 1) + floor((eLevel - 1) / 2));
-  const rows = min(6, 3 + floor((stage - 1) / 2) + floor((eLevel - 1) / 2));
-  const spacingX = 80 - min(16, stage * 2 + eLevel);
+  const colsBase = 5 + floor((stage - 1) / 1.5) + floor((eLevel - 1) / 3);
+  const rowsBase = 3 + floor((stage - 1) / 3) + floor((eLevel - 1) / 3);
+  let cols = min(9, colsBase);
+  let rows = min(5, rowsBase);
+  if (stage === 1) {
+    cols = min(cols, 7);
+    rows = min(rows, 4);
+  }
+  const spacingX = 82 - min(18, stage * 2 + eLevel * 1.2);
   const spacingY = 55;
   const offsetX = (width - (cols - 1) * spacingX) / 2;
   const offsetY = 80;
@@ -275,7 +281,7 @@ function spawnWave() {
     }
   }
 
-  enemySpeed = 1.2 + (stage - 1) * 0.18 + (eLevel - 1) * 0.2;
+  enemySpeed = 1.2 + (stage - 1) * 0.14 + (eLevel - 1) * 0.18;
   announceTimer = millis();
 }
 
@@ -314,11 +320,14 @@ function adjustWeightForStage(entry, s, eLevel) {
   if (type === "bacteria" || type === "virus") {
     if (s >= 5) scaled *= 0.35;
     else if (s >= 3) scaled *= 0.55;
+    else if (s === 1) scaled *= 0.85;
   }
 
   if (type === "parasite") {
-    if (s < 4) return 0;
-    scaled *= 0.7;
+    if (s === 1) return 0;
+    if (s === 2) scaled *= 0.8;
+    if (s === 5) scaled *= 0.65;
+    if (s === 3) scaled *= 0.9;
   }
 
   if (type === "capsule" && s >= 5) {
@@ -344,11 +353,24 @@ function withinWaveLimit(type, counts) {
   const seen = counts[type] || 0;
   if (stage >= 5 && (type === "bacteria" || type === "virus") && seen >= 2) return false;
   if (stage >= 5 && type === "capsule" && seen >= 2) return false;
+  if (type === "parasite") {
+    const cap = parasiteCapForStage(stage);
+    if (seen >= cap) return false;
+  }
   if (type === "spore") {
     if (stage === 4 && seen >= 1) return false;
     if (stage >= 5 && seen >= 3) return false;
   }
   return true;
+}
+
+function parasiteCapForStage(s) {
+  if (s === 1) return 0;
+  if (s === 2) return 2;
+  if (s === 3) return 3;
+  if (s === 4) return 4;
+  if (s === 5) return 2;
+  return 4;
 }
 
 function patternForType(type) {
@@ -965,7 +987,8 @@ function maybeTriggerDive(enemy) {
   const eLevel = effectiveLevel();
   if (eLevel < 2) return;
 
-  const diveChance = 0.0008 + (stage - 1) * 0.0004 + (eLevel - 2) * 0.0005;
+  const stageBias = stage === 5 ? -0.00025 : stage >= 6 ? 0.00015 : 0;
+  const diveChance = 0.0008 + max(0, stage - 2) * 0.00035 + (eLevel - 2) * 0.00045 + stageBias;
   if (random() < diveChance) {
     enemy.diveActive = true;
     enemy.diveSpeed = 3.3 + stage * 0.25 + eLevel * 0.2;
