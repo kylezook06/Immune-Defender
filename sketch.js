@@ -45,6 +45,7 @@ const statusPanel = {
 
 let score = 0;
 let lives = 3;
+let nextExtraLifeScore = 50000;
 let level = 1;
 let stage = 1; // 1-6 within a level
 let announceTimer = 0;
@@ -119,6 +120,7 @@ function setup() {
 function resetGame() {
   score = 0;
   lives = 3;
+  nextExtraLifeScore = 50000;
   level = 1;
   stage = 1;
   enemyDir = 1;
@@ -1200,6 +1202,15 @@ function addScore(amount) {
     newHighScore = true;
     newHighScoreTimer = millis();
     saveHighScore();
+  }
+
+  while (score >= nextExtraLifeScore) {
+    lives++;
+    nextExtraLifeScore += 50000;
+    statusPanel.title = "Immune surge";
+    statusPanel.text = "Immune system rallies—extra life granted at 50,000 points.";
+    statusPanel.timer = millis();
+    spawnEngulfParticles(player.x, player.y, "shield");
   }
 }
 

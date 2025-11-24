@@ -22,12 +22,13 @@ All drawn with simple shapes and colors to feel like an 80s arcade game.
   - Memory cells weaken pathogen types each time you clear a wave.
   - A side-panel highlights neutrophils/B-cells/T-cells/memory cells as power-ups trigger.
   - Persistent high score tracking with an on-screen callout the moment you beat your best run.
+  - Immune surges grant an extra life every 50,000 points.
 
 ### How to play
 
 1. Paste `sketch.js` into the [p5.js web editor](https://editor.p5js.org/) and press the **Play** button.
 2. Use `←` / `→` to move and hold **Space** to stream shots (faster during an antibody boost).
-3. Survive as many infections as you can: each infection is six stages, then the next level starts with denser, faster enemies and harsher counterfire. Collect power-ups as they drift down to gain rapid fire or a protective bubble. Lose all three lives and the run ends—chase that high score (which persists between runs)!
+3. Survive as many infections as you can: each infection is six stages, then the next level starts with denser, faster enemies and harsher counterfire. Collect power-ups as they drift down to gain rapid fire or a protective bubble. Earn an extra life every 50,000 points. Lose all lives and the run ends—chase that high score (which persists between runs)!
 
 ### Sound assets
 
