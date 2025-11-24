@@ -41,6 +41,8 @@ const stagesPerLevel = 6;
 let lastShotTime = 0;
 const baseShotDelay = 260; // ms between shots
 let shotDelay = baseShotDelay;
+const shootVolume = 0.8;
+const implosionVolume = 0.65;
 
 const rapidFire = { active: false, timer: 0, duration: 8000 };
 const shield = { active: false, timer: 0, duration: 6500 };
@@ -68,11 +70,11 @@ function preload() {
     "Torpedo-Launch-04.wav"
   ];
   shootSounds = shotFiles
-    .map(path => loadOptionalSound(buildSoundPath(path), 0.8))
+    .map(path => loadOptionalSound(buildSoundPath(path), shootVolume))
     .filter(Boolean);
   implosionSound = loadOptionalSound(
     buildSoundPath("Underwater-Implosion-1.wav"),
-    0.65
+    implosionVolume
   );
 }
 
@@ -108,6 +110,7 @@ function resetGame() {
   statusPanel.title = "Neutrophil";
   statusPanel.text = "Frontline phagocytes fire engulfing bursts.";
   statusPanel.timer = millis();
+  refreshSounds();
   initPlayer();
   spawnWave();
   gameState = "title";
@@ -554,18 +557,19 @@ function updateEnemyBullets() {
 function updateEnemies() {
   if (enemies.length === 0) return;
 
-  let edgeHit = false;
+  let minX = Infinity;
+  let maxX = -Infinity;
   for (let e of enemies) {
     e.x += enemySpeed * enemyDir;
-    if (e.x < 30 || e.x > width - 30) {
-      edgeHit = true;
-    }
+    minX = min(minX, e.x);
+    maxX = max(maxX, e.x);
   }
 
-  if (edgeHit) {
+  if (minX < 30 || maxX > width - 30) {
     enemyDir *= -1;
     for (let e of enemies) {
       e.y += 16;
+      e.x = constrain(e.x, 30, width - 30);
     }
   }
 
@@ -758,6 +762,7 @@ function loseLife() {
   lives--;
   spawnEngulfParticles(player.x, player.y, "hit");
   playImplosionSound();
+  refreshSounds();
   bullets = [];
   enemies = [];
   powerups = [];
@@ -774,6 +779,7 @@ function loseLife() {
 
 function checkWinLose() {
   if (enemies.length === 0) {
+    refreshSounds();
     registerMemoryCells();
     stage++;
     if (stage > stagesPerLevel) {
@@ -831,6 +837,31 @@ function loadOptionalSound(path, volume) {
     soundFile = null;
   }
   return soundFile;
+}
+
+function refreshSounds() {
+  if (typeof loadSound !== "function") return;
+
+  shootSounds = shootSounds.filter(Boolean);
+  for (const snd of shootSounds) {
+    try {
+      snd.stop?.();
+      snd.playMode?.("restart");
+      snd.setVolume?.(shootVolume);
+    } catch (err) {
+      console.warn("Unable to refresh shot sound:", err);
+    }
+  }
+
+  if (implosionSound) {
+    try {
+      implosionSound.stop?.();
+      implosionSound.playMode?.("restart");
+      implosionSound.setVolume?.(implosionVolume);
+    } catch (err) {
+      console.warn("Unable to refresh implosion sound:", err);
+    }
+  }
 }
 
 function playShootSound() {
