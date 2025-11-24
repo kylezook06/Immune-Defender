@@ -165,7 +165,10 @@ function spawnWave() {
         hp,
         phase,
         pattern,
-        jiggle: random(0.6, 1.4)
+        jiggle: random(0.6, 1.4),
+        diveActive: false,
+        diveSpeed: 0,
+        diveWobble: random(TWO_PI)
       });
 
       currentWaveTypes.add(type);
@@ -568,12 +571,25 @@ function updateEnemies() {
 
   for (let e of enemies) {
     applyEnemyMovement(e);
+    maybeTriggerDive(e);
   }
 
   maybeEnemyFire();
 }
 
 function applyEnemyMovement(enemy) {
+  if (enemy.diveActive) {
+    const steer = 0.02 + level * 0.0025;
+    enemy.x = lerp(enemy.x, player.x, steer);
+    enemy.y += enemy.diveSpeed;
+    enemy.x += sin(frameCount * 0.18 + enemy.diveWobble) * 1.4;
+
+    if (enemy.y > height + 30) {
+      resetDiver(enemy);
+    }
+    return;
+  }
+
   if (enemy.pattern === "zigzag") {
     enemy.x += sin(frameCount * 0.08 + enemy.phase) * 1.5;
     enemy.y += sin(frameCount * 0.12 + enemy.phase) * 1.4;
@@ -586,6 +602,27 @@ function applyEnemyMovement(enemy) {
       enemy.x += sin(frameCount * 0.04 + enemy.phase) * 0.5;
     }
   }
+}
+
+function maybeTriggerDive(enemy) {
+  if (gameState !== "play") return;
+  if (enemy.type !== "parasite") return;
+  if (enemy.diveActive) return;
+  if (level < 2) return;
+
+  const diveChance = 0.0008 + (stage - 1) * 0.0004 + (level - 2) * 0.0005;
+  if (random() < diveChance) {
+    enemy.diveActive = true;
+    enemy.diveSpeed = 3.3 + stage * 0.25 + level * 0.2;
+    enemy.diveWobble = random(TWO_PI);
+  }
+}
+
+function resetDiver(enemy) {
+  enemy.diveActive = false;
+  enemy.y = -40;
+  enemy.x = random(40, width - 40);
+  enemy.phase = random(TWO_PI);
 }
 
 function updatePowerups() {
@@ -692,7 +729,7 @@ function handleCollisions() {
       }
       break;
     }
-    if (e.y > height - 50) {
+    if (!e.diveActive && e.y > height - 50) {
       if (shield.active) {
         shield.active = false;
         spawnEngulfParticles(player.x, player.y, "shield");

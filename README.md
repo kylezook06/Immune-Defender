@@ -17,7 +17,7 @@ All drawn with simple shapes and colors to feel like an 80s arcade game.
 - **HUD polish:** Level + stage counters, power-up timers, and a brief banner announcing the current stage/level.
 - **Visual clarity:** Shield aura around the player and distinct icon shapes for the two power-ups.
 - **Audio-ready:** Torpedo launch shots and an implosion stinger when you lose a life (use the optional `p5.sound.min.js` or the p5.sound CDN and keep the `.wav` files alongside `sketch.js` or in an `assets/` folder).
-- **Immunology flair:** Color-coded bacteria/virus/parasite sprites, tougher parasite behavior at higher levels, a memory-cell bonus that weakens pathogens you've beaten before, and a side-panel that explains neutrophils/B-cells/T-cells as you gain power-ups.
+- **Immunology flair:** Color-coded bacteria/virus/parasite sprites, tougher parasite behavior at higher levels, a memory-cell bonus that weakens pathogens you've beaten before, a side-panel that explains neutrophils/B-cells/T-cells as you gain power-ups, and late-level parasites that dive-bomb toward you—if they miss, they zip back up instead of ending your run.
 
 ### How to play
 
