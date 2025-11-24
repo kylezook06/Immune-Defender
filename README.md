@@ -16,7 +16,7 @@ All drawn with simple shapes and colors to feel like an 80s arcade game.
 - **Two power-ups:** Antibody Boost (rapid fire) and a membrane **shield** that saves you from one collision or leak.
 - **HUD polish:** Level + stage counters, power-up timers, and a brief banner announcing the current stage/level.
 - **Visual clarity:** Shield aura around the player and distinct icon shapes for the two power-ups.
-- **Audio-ready:** Torpedo launch shots and an implosion stinger when you lose a life (use the optional `p5.sound.min.js` or the p5.sound CDN and drop the `.wav` files into an `assets/` folder).
+- **Audio-ready:** Torpedo launch shots and an implosion stinger when you lose a life (use the optional `p5.sound.min.js` or the p5.sound CDN and keep the `.wav` files alongside `sketch.js` or in an `assets/` folder).
 - **Immunology flair:** Color-coded bacteria/virus/parasite sprites, tougher parasite behavior at higher levels, a memory-cell bonus that weakens pathogens you've beaten before, and a side-panel that explains neutrophils/B-cells/T-cells as you gain power-ups.
 
 ### How to play
@@ -28,5 +28,5 @@ All drawn with simple shapes and colors to feel like an 80s arcade game.
 ### Sound assets
 
 - Add `p5.sound.min.js` alongside `sketch.js` (or include the p5.sound library in the web editor) so the sound helpers are available.
-- Create an `assets/` folder next to `sketch.js` and drop in these `.wav` files: `Torpedo-Launch-01.wav`, `Torpedo-Launch-02.wav`, `Torpedo-Launch-03.wav`, `Torpedo-Launch-04.wav`, and `Underwater-Implosion-1.wav`. The repository ignores these binaries so contributors can keep the branch lightweight; the game will run silently if the files are missing.
-- If you prefer hosted files (e.g., from the p5 editor asset bucket), pass the full URL into the sound loader—absolute URLs will be respected and won't be double-prefixed with `assets/`.
+- Drop the `.wav` files (`Torpedo-Launch-01.wav`, `Torpedo-Launch-02.wav`, `Torpedo-Launch-03.wav`, `Torpedo-Launch-04.wav`, `Underwater-Implosion-1.wav`) right beside `sketch.js` **or** put them in an `assets/` folder if you prefer to keep things tidy. In the latter case, set `soundBasePath` near the top of `sketch.js` to `"assets/"`. The repository ignores these binaries so contributors can keep the branch lightweight; the game will run silently if the files are missing.
+- If you prefer hosted files (e.g., from the p5 editor asset bucket), pass the full URL into the sound loader—absolute URLs will be respected and won't be double-prefixed.

@@ -44,7 +44,9 @@ let shotDelay = baseShotDelay;
 
 const rapidFire = { active: false, timer: 0, duration: 8000 };
 const shield = { active: false, timer: 0, duration: 6500 };
-const soundBasePath = "assets/";
+// Set to "assets/" if you keep your .wav files in an assets folder; leave blank if
+// the sounds sit beside sketch.js (default for the p5.js web editor).
+const soundBasePath = "";
 
 function buildSoundPath(file) {
   if (/^(?:https?:)?\/\//.test(file) || file.startsWith("data:")) return file;
