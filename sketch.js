@@ -1278,7 +1278,7 @@ function keyPressed() {
     tryShoot();
   }
 
-  if (key === "0" && keyIsDown(CONTROL) && keyIsDown(SHIFT)) {
+  if (isLevelSelectCombo()) {
     secretLevelSelect();
     return;
   }
@@ -1289,6 +1289,25 @@ function keyPressed() {
       gameState = "play";
     }
   }
+}
+
+function isLevelSelectCombo() {
+  const normalized = key.toLowerCase();
+  const ctrl = keyIsDown(CONTROL);
+  const shift = keyIsDown(SHIFT);
+  const alt = keyIsDown(ALT);
+
+  // Primary: Ctrl+Shift+0 (may be blocked by browser zoom shortcuts)
+  if (key === "0" && ctrl && shift) return true;
+
+  // Fallbacks that tend to avoid browser defaults
+  // Ctrl+Shift+L ("level") and Ctrl+Alt+L for Chrome/Firefox safety
+  if (normalized === "l" && ctrl && (shift || alt)) return true;
+
+  // Ctrl+Alt+` (backtick) as a final option when number row is blocked
+  if (key === "`" && ctrl && alt) return true;
+
+  return false;
 }
 
 function tryShoot() {

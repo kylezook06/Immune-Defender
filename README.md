@@ -23,7 +23,7 @@ All drawn with simple shapes and colors to feel like an 80s arcade game.
   - A side-panel highlights neutrophils/B-cells/T-cells/memory cells as power-ups trigger.
   - Persistent high score tracking with an on-screen callout the moment you beat your best run.
   - Immune surges grant an extra life every 50,000 points.
-  - Hidden playtest shortcut: press **Ctrl + Shift + 0** to jump straight to a chosen level (Stage 1), capped at Level 9 for balanced tuning.
+  - Hidden playtest shortcut: press **Ctrl + Shift + 0** (or fallbacks **Ctrl + Shift + L**, **Ctrl + Alt + L**, **Ctrl + Alt + `** if your browser intercepts zoom shortcuts) to jump straight to a chosen level (Stage 1), capped at Level 9 for balanced tuning.
 
 ### How to play
 
