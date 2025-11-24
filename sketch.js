@@ -14,6 +14,7 @@ let currentWaveTypes = new Set();
 let highScore = 0;
 let newHighScore = false;
 let newHighScoreTimer = 0;
+let detachedSpores = 0;
 
 const highScoreKey = "immuneDefenderHighScore";
 
@@ -125,6 +126,7 @@ function resetGame() {
   stage = 1;
   enemyDir = 1;
   enemySpeed = 1.2;
+  detachedSpores = 0;
   shotDelay = baseShotDelay;
   bullets = [];
   enemies = [];
@@ -183,8 +185,10 @@ function spawnWave() {
   enemyBullets = [];
   enemyDir = 1;
   currentWaveTypes = new Set();
+  detachedSpores = 0;
 
   const eLevel = effectiveLevel();
+  const waveCounts = {};
 
   const cols = min(10, 6 + floor((stage - 1) / 1) + floor((eLevel - 1) / 2));
   const rows = min(6, 3 + floor((stage - 1) / 2) + floor((eLevel - 1) / 2));
@@ -195,7 +199,16 @@ function spawnWave() {
 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      const type = pickEnemyType(eLevel);
+      let type;
+      for (let tries = 0; tries < 6; tries++) {
+        const candidate = pickEnemyType(eLevel, stage);
+        if (withinWaveLimit(candidate, waveCounts)) {
+          type = candidate;
+          break;
+        }
+      }
+      if (!type) type = pickEnemyType(eLevel, stage);
+      waveCounts[type] = (waveCounts[type] || 0) + 1;
       const hp = enemyHpFor(type, eLevel);
       const phase = random(TWO_PI);
       const pattern = patternForType(type);
@@ -266,7 +279,7 @@ function spawnWave() {
   announceTimer = millis();
 }
 
-function pickEnemyType(eLevel = effectiveLevel()) {
+function pickEnemyType(eLevel = effectiveLevel(), s = stage) {
   const pool = [
     { type: "bacteria", weight: 0.22, unlock: 1 },
     { type: "virus", weight: 0.2, unlock: 1 },
@@ -278,7 +291,10 @@ function pickEnemyType(eLevel = effectiveLevel()) {
     { type: "mutant", weight: 0.1, unlock: 7 },
     { type: "sporeLauncher", weight: 0.1, unlock: 8 },
     { type: "macroparasite", weight: 0.08, unlock: 9 }
-  ].filter(entry => eLevel >= entry.unlock);
+  ]
+    .filter(entry => eLevel >= entry.unlock)
+    .map(entry => ({ ...entry, weight: adjustWeightForStage(entry, s, eLevel) }))
+    .filter(entry => entry.weight > 0);
 
   const totalWeight = pool.reduce((sum, entry) => sum + entry.weight, 0);
   let roll = random(totalWeight);
@@ -288,6 +304,51 @@ function pickEnemyType(eLevel = effectiveLevel()) {
     }
   }
   return pool[pool.length - 1].type;
+}
+
+function adjustWeightForStage(entry, s, eLevel) {
+  const { type, weight, unlock } = entry;
+  let scaled = weight;
+  const age = eLevel - unlock;
+
+  if (type === "bacteria" || type === "virus") {
+    if (s >= 5) scaled *= 0.35;
+    else if (s >= 3) scaled *= 0.55;
+  }
+
+  if (type === "parasite") {
+    if (s < 4) return 0;
+    scaled *= 0.7;
+  }
+
+  if (type === "capsule" && s >= 5) {
+    scaled *= 0.6;
+  }
+
+  if (type === "spore") {
+    if (s < 4) return 0;
+    if (s === 4) scaled *= 0.6; // introduce gently
+  }
+
+  if (age >= 2 && s >= 4) {
+    scaled *= 0.7;
+  }
+  if (age >= 3 && s >= 5) {
+    scaled *= 0.55;
+  }
+
+  return max(0, scaled);
+}
+
+function withinWaveLimit(type, counts) {
+  const seen = counts[type] || 0;
+  if (stage >= 5 && (type === "bacteria" || type === "virus") && seen >= 2) return false;
+  if (stage >= 5 && type === "capsule" && seen >= 2) return false;
+  if (type === "spore") {
+    if (stage === 4 && seen >= 1) return false;
+    if (stage >= 5 && seen >= 3) return false;
+  }
+  return true;
 }
 
 function patternForType(type) {
@@ -835,12 +896,18 @@ function applyEnemyMovement(enemy) {
 
   if (enemy.type === "spore") {
     if (!enemy.detached && millis() > enemy.detachAt) {
-      enemy.detached = true;
-      enemy.pattern = "drift";
+      const cap = sporeDetachLimit();
+      if (detachedSpores < cap) {
+        enemy.detached = true;
+        detachedSpores++;
+        enemy.pattern = "drift";
+      } else {
+        enemy.detachAt = millis() + 700;
+      }
     }
 
     if (enemy.detached) {
-      enemy.y += 1.2 + eLevel * 0.1;
+      enemy.y += 0.6 + eLevel * 0.05;
       enemy.x += sin(frameCount * 0.08 + enemy.phase) * 1.5;
       return;
     }
@@ -882,6 +949,13 @@ function applyEnemyMovement(enemy) {
       enemy.x += sin(frameCount * 0.04 + enemy.phase) * 0.5;
     }
   }
+}
+
+function sporeDetachLimit() {
+  if (stage < 4) return 0;
+  if (stage < 5) return 1;
+  if (stage < 6) return 2;
+  return 3;
 }
 
 function maybeTriggerDive(enemy) {
@@ -988,6 +1062,7 @@ function handleCollisions() {
         bullets.splice(i, 1);
         if (e.hp <= 0) {
           maybeDropPowerup(e);
+          if (e.type === "spore" && e.detached) detachedSpores = max(0, detachedSpores - 1);
           enemies.splice(j, 1);
           addScore(100 + stage * 10 + (level - 1) * 20);
         } else {
@@ -1072,6 +1147,7 @@ function loseLife() {
   enemies = [];
   powerups = [];
   enemyBullets = [];
+  detachedSpores = 0;
   enemyDir = 1;
   initPlayer();
   if (lives <= 0) {

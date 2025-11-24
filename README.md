@@ -19,6 +19,8 @@ All drawn with simple shapes and colors to feel like an 80s arcade game.
 - **Audio-ready:** Torpedo launch shots and an implosion stinger when you lose a life (use the optional `p5.sound.min.js` or the p5.sound CDN and keep the `.wav` files alongside `sketch.js` or in an `assets/` folder).
 - **Immunology flair:**
   - Color-coded, level-gated pathogens: core bacteria/viruses at Level 1, parasites join at Level 2 with dive-bomb behavior, encapsulated bacteria at Level 3, drifting spore mines at Level 4, orbiting swarm clusters at Level 5, snaking helminths at Level 6, mutating jitter viruses at Level 7, spore-launching artillery at Level 8, and macroparasite mini-bosses at Level 9 and beyond.
+  - Formations thin out early-level foes in later stages (fewer bacteria/viruses, intermittent parasites from Stage 4, rarer capsules from Stage 5) so the screen stays readable while new variants rotate in.
+  - Spore mines now detach one-at-a-time when introduced, with slower drifts and only a few falling concurrently in late stages.
   - Memory cells weaken pathogen types each time you clear a wave.
   - A side-panel highlights neutrophils/B-cells/T-cells/memory cells as power-ups trigger.
   - Persistent high score tracking with an on-screen callout the moment you beat your best run.
