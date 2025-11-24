@@ -527,7 +527,9 @@ function handleInput() {
   }
   player.x = constrain(player.x, 30, width - 30);
 
-  // shooting handled in keyPressed for nicer feel
+  if (keyIsDown(32)) {
+    tryShoot();
+  }
 }
 
 function updateStars() {
