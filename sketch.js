@@ -15,7 +15,14 @@ let currentWaveTypes = new Set();
 const memoryCells = {
   bacteria: 0,
   virus: 0,
-  parasite: 0
+  parasite: 0,
+  capsule: 0,
+  spore: 0,
+  swarm: 0,
+  helminth: 0,
+  mutant: 0,
+  sporeLauncher: 0,
+  macroparasite: 0
 };
 
 let enemyDir = 1; // horizontal direction of enemy swarm
@@ -43,6 +50,10 @@ const baseShotDelay = 260; // ms between shots
 let shotDelay = baseShotDelay;
 const shootVolume = 0.8;
 const implosionVolume = 0.65;
+
+function effectiveLevel() {
+  return min(level, 9);
+}
 
 const rapidFire = { active: false, timer: 0, duration: 8000 };
 const shield = { active: false, timer: 0, duration: 6500 };
@@ -104,6 +115,13 @@ function resetGame() {
   memoryCells.bacteria = 0;
   memoryCells.virus = 0;
   memoryCells.parasite = 0;
+  memoryCells.capsule = 0;
+  memoryCells.spore = 0;
+  memoryCells.swarm = 0;
+  memoryCells.helminth = 0;
+  memoryCells.mutant = 0;
+  memoryCells.sporeLauncher = 0;
+  memoryCells.macroparasite = 0;
   rapidFire.active = false;
   shield.active = false;
   respawnTimer = 0;
@@ -145,56 +163,147 @@ function spawnWave() {
   enemyDir = 1;
   currentWaveTypes = new Set();
 
-  const cols = min(10, 6 + floor((stage - 1) / 1) + floor((level - 1) / 2));
-  const rows = min(6, 3 + floor((stage - 1) / 2) + floor((level - 1) / 2));
-  const spacingX = 80 - min(16, stage * 2 + level);
+  const eLevel = effectiveLevel();
+
+  const cols = min(10, 6 + floor((stage - 1) / 1) + floor((eLevel - 1) / 2));
+  const rows = min(6, 3 + floor((stage - 1) / 2) + floor((eLevel - 1) / 2));
+  const spacingX = 80 - min(16, stage * 2 + eLevel);
   const spacingY = 55;
   const offsetX = (width - (cols - 1) * spacingX) / 2;
   const offsetY = 80;
 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      const type = pickEnemyType();
-      const hp = enemyHpFor(type);
-      const pattern = type === "parasite" ? "zigzag" : "sway";
+      const type = pickEnemyType(eLevel);
+      const hp = enemyHpFor(type, eLevel);
       const phase = random(TWO_PI);
+      const pattern = patternForType(type);
+      let w = 34;
+      let h = 26;
+      let speedScale = 1;
 
-      enemies.push({
+      if (type === "parasite") {
+        w = 38;
+        h = 28;
+      } else if (type === "capsule") {
+        w = 36;
+        h = 26;
+        speedScale = 0.75;
+      } else if (type === "spore") {
+        w = 22;
+        h = 22;
+        speedScale = 0.5;
+      } else if (type === "swarm") {
+        w = 30;
+        h = 30;
+      } else if (type === "helminth") {
+        w = 44;
+        h = 24;
+        speedScale = 0.9;
+      } else if (type === "mutant") {
+        w = 34;
+        h = 26;
+      } else if (type === "sporeLauncher") {
+        w = 30;
+        h = 26;
+        speedScale = 0.7;
+      } else if (type === "macroparasite") {
+        w = 46;
+        h = 36;
+        speedScale = 0.85;
+      }
+
+      const enemy = {
         x: offsetX + c * spacingX,
         y: offsetY + r * spacingY,
-        w: 34,
-        h: 26,
+        w,
+        h,
         type,
         hp,
         phase,
         pattern,
+        speedScale,
         jiggle: random(0.6, 1.4),
         diveActive: false,
         diveSpeed: 0,
-        diveWobble: random(TWO_PI)
-      });
+        diveWobble: random(TWO_PI),
+        detached: false,
+        detachAt: millis() + random(1800, 3800),
+        orbitRadius: random(10, 14),
+        orbitPhase: random(TWO_PI),
+        dashCooldown: 0,
+        stalkCooldown: millis() + 1800 + random(1200)
+      };
+
+      enemies.push(enemy);
 
       currentWaveTypes.add(type);
     }
   }
 
-  enemySpeed = 1.2 + (stage - 1) * 0.18 + (level - 1) * 0.2;
+  enemySpeed = 1.2 + (stage - 1) * 0.18 + (eLevel - 1) * 0.2;
   announceTimer = millis();
 }
 
-function pickEnemyType() {
-  const parasiteChance = level >= 2 ? 0.2 + (level - 2) * 0.05 : 0;
-  const virusChance = 0.22;
-  const roll = random();
-  if (roll < parasiteChance) return "parasite";
-  if (roll < parasiteChance + virusChance) return "virus";
-  return "bacteria";
+function pickEnemyType(eLevel = effectiveLevel()) {
+  const pool = [
+    { type: "bacteria", weight: 0.22, unlock: 1 },
+    { type: "virus", weight: 0.2, unlock: 1 },
+    { type: "parasite", weight: 0.16, unlock: 1 },
+    { type: "capsule", weight: 0.14, unlock: 3 },
+    { type: "spore", weight: 0.12, unlock: 4 },
+    { type: "swarm", weight: 0.12, unlock: 5 },
+    { type: "helminth", weight: 0.1, unlock: 6 },
+    { type: "mutant", weight: 0.1, unlock: 7 },
+    { type: "sporeLauncher", weight: 0.1, unlock: 8 },
+    { type: "macroparasite", weight: 0.08, unlock: 9 }
+  ].filter(entry => eLevel >= entry.unlock);
+
+  const totalWeight = pool.reduce((sum, entry) => sum + entry.weight, 0);
+  let roll = random(totalWeight);
+  for (const entry of pool) {
+    if ((roll -= entry.weight) <= 0) {
+      return entry.type;
+    }
+  }
+  return pool[pool.length - 1].type;
 }
 
-function enemyHpFor(type) {
+function patternForType(type) {
+  if (type === "parasite") return "zigzag";
+  if (type === "swarm") return "orbit";
+  if (type === "helminth") return "snake";
+  if (type === "mutant") return "jitter";
+  if (type === "spore") return "sway";
+  if (type === "sporeLauncher") return "anchor";
+  if (type === "macroparasite") return "macro";
+  return "sway";
+}
+
+function enemyHpFor(type, eLevel = effectiveLevel()) {
   const stageBonus = floor((stage - 1) / 2);
-  const levelBonus = floor((level - 1) / 1.5);
-  const baseHp = type === "bacteria" ? 1 : type === "virus" ? 2 : 3 + floor((level - 2) / 2);
+  const levelBonus = floor((eLevel - 1) / 1.5);
+  const baseHp =
+    type === "bacteria"
+      ? 1
+      : type === "virus"
+      ? 2
+      : type === "parasite"
+      ? 3 + floor((eLevel - 2) / 2)
+      : type === "capsule"
+      ? 3
+      : type === "spore"
+      ? 1
+      : type === "swarm"
+      ? 3
+      : type === "helminth"
+      ? 5
+      : type === "mutant"
+      ? 3
+      : type === "sporeLauncher"
+      ? 3
+      : 6; // macroparasite
+
   const memoryBoost = min(memoryCells[type] || 0, baseHp + stageBonus + levelBonus - 1);
   return max(1, baseHp + stageBonus + levelBonus - memoryBoost);
 }
@@ -408,6 +517,94 @@ function drawEnemies() {
       fill(20, 0, 40);
       ellipse(-5, -4, 5, 5);
       ellipse(5, -4, 5, 5);
+    } else if (e.type === "capsule") {
+      const pulse = 1 + 0.05 * sin(frameCount * 0.1 + e.phase);
+      scale(pulse);
+      fill(60, 180, 200);
+      rectMode(CENTER);
+      rect(0, 0, e.w, e.h, 12);
+      noFill();
+      stroke(160, 230, 255, 180);
+      strokeWeight(3);
+      ellipse(0, 0, e.w + 12, e.h + 12);
+    } else if (e.type === "spore") {
+      fill(255, 170, 70);
+      ellipse(0, 0, e.w, e.h);
+      stroke(255, 210, 120, 180);
+      strokeWeight(1.5);
+      noFill();
+      ellipse(0, 0, e.w + 8, e.h + 8);
+      noStroke();
+      fill(255, 240, 200);
+      for (let a = 0; a < TWO_PI; a += PI / 3) {
+        const rx = 8 * cos(a + frameCount * 0.05 + e.phase);
+        const ry = 8 * sin(a + frameCount * 0.05 + e.phase);
+        ellipse(rx, ry, 3, 3);
+      }
+    } else if (e.type === "swarm") {
+      const angle = e.orbitPhase + frameCount * 0.08;
+      const radius = e.orbitRadius;
+      for (let k = 0; k < 3; k++) {
+        const a = angle + k * (TWO_PI / 3);
+        const ox = radius * cos(a);
+        const oy = radius * sin(a);
+        fill(170, 230, 220, 220);
+        ellipse(ox, oy, 12, 12);
+        fill(0, 40, 40, 200);
+        ellipse(ox - 2, oy - 2, 3, 3);
+      }
+    } else if (e.type === "helminth") {
+      const segments = 5;
+      const segSpacing = 10;
+      for (let i = 0; i < segments; i++) {
+        const offset = (i - segments / 2) * segSpacing;
+        const wiggle = sin(frameCount * 0.1 + e.phase + i * 0.4) * 3;
+        fill(240, 200, 120);
+        ellipse(offset + wiggle, i === segments - 1 ? -4 : 0, 16, 12);
+      }
+      fill(60, 20, 20);
+      ellipse(segSpacing * (segments / 2 - 1) + 2, -4, 3, 3);
+      ellipse(segSpacing * (segments / 2 - 1) + 7, -3, 3, 3);
+    } else if (e.type === "mutant") {
+      const pulse = random() < 0.05 ? 1.25 : 1;
+      scale(pulse);
+      fill(120, 200, 230);
+      ellipse(0, 0, e.w, e.w);
+      stroke(60, 20, 120);
+      strokeWeight(2);
+      for (let a = 0; a < TWO_PI; a += PI / 4) {
+        const x1 = (e.w / 2 - 6) * cos(a);
+        const y1 = (e.w / 2 - 6) * sin(a);
+        const x2 = (e.w / 2 + 5) * cos(a);
+        const y2 = (e.w / 2 + 5) * sin(a);
+        line(x1, y1, x2, y2);
+      }
+      noStroke();
+      fill(10, 0, 60);
+      ellipse(-5, -4, 5, 5);
+      ellipse(5, -4, 5, 5);
+    } else if (e.type === "sporeLauncher") {
+      fill(180, 60, 110);
+      rectMode(CENTER);
+      rect(0, 0, e.w, e.h, 6);
+      fill(230, 160, 190);
+      triangle(-8, e.h / 2, -2, e.h / 2 + 8, -6, e.h / 2 + 2);
+      triangle(8, e.h / 2, 2, e.h / 2 + 8, 6, e.h / 2 + 2);
+      fill(30, 0, 40);
+      ellipse(-4, -2, 4, 4);
+      ellipse(4, -2, 4, 4);
+    } else if (e.type === "macroparasite") {
+      fill(210, 110, 50);
+      beginShape();
+      for (let a = 0; a < TWO_PI; a += PI / 6) {
+        const r = e.w / 2 + sin(frameCount * 0.04 + a * 2) * 4;
+        vertex(r * cos(a), r * sin(a));
+      }
+      endShape(CLOSE);
+      fill(40, 0, 0, 180);
+      ellipse(-6, -4, 6, 6);
+      ellipse(6, 2, 6, 6);
+      ellipse(0, 6, 5, 5);
     } else {
       // parasite: tougher, irregular blob
       fill(250, 180, 80);
@@ -552,6 +749,9 @@ function updateBullets() {
 function updateEnemyBullets() {
   for (let eb of enemyBullets) {
     eb.y += eb.vy;
+    if (eb.swayPhase !== undefined) {
+      eb.x += sin(frameCount * 0.12 + eb.swayPhase) * eb.swayAmp;
+    }
   }
   enemyBullets = enemyBullets.filter(eb => eb.y < height + 30);
 }
@@ -562,7 +762,8 @@ function updateEnemies() {
   let minX = Infinity;
   let maxX = -Infinity;
   for (let e of enemies) {
-    e.x += enemySpeed * enemyDir;
+    const moveScale = e.diveActive || (e.type === "spore" && e.detached) ? 0 : e.speedScale || 1;
+    e.x += enemySpeed * enemyDir * moveScale;
     minX = min(minX, e.x);
     maxX = max(maxX, e.x);
   }
@@ -584,8 +785,9 @@ function updateEnemies() {
 }
 
 function applyEnemyMovement(enemy) {
+  const eLevel = effectiveLevel();
   if (enemy.diveActive) {
-    const steer = 0.02 + level * 0.0025;
+    const steer = 0.02 + eLevel * 0.0025;
     enemy.x = lerp(enemy.x, player.x, steer);
     enemy.y += enemy.diveSpeed;
     enemy.x += sin(frameCount * 0.18 + enemy.diveWobble) * 1.4;
@@ -596,15 +798,52 @@ function applyEnemyMovement(enemy) {
     return;
   }
 
+  if (enemy.type === "spore") {
+    if (!enemy.detached && millis() > enemy.detachAt) {
+      enemy.detached = true;
+      enemy.pattern = "drift";
+    }
+
+    if (enemy.detached) {
+      enemy.y += 1.2 + eLevel * 0.1;
+      enemy.x += sin(frameCount * 0.08 + enemy.phase) * 1.5;
+      return;
+    }
+  }
+
   if (enemy.pattern === "zigzag") {
     enemy.x += sin(frameCount * 0.08 + enemy.phase) * 1.5;
     enemy.y += sin(frameCount * 0.12 + enemy.phase) * 1.4;
-    if (random() < 0.008 + level * 0.001) {
+    if (random() < 0.008 + eLevel * 0.001) {
       enemy.x += random([-10, 10]);
+    }
+  } else if (enemy.pattern === "orbit") {
+    enemy.y += sin(frameCount * 0.07 + enemy.phase) * 0.7;
+  } else if (enemy.pattern === "snake") {
+    enemy.y += sin(frameCount * 0.06 + enemy.phase) * 1.8;
+    enemy.x += sin(frameCount * 0.07 + enemy.phase * 1.3) * 0.9;
+    if (enemy.y > height - 140) {
+      enemy.y += 0.6;
+    }
+  } else if (enemy.pattern === "jitter") {
+    enemy.x += random(-1.2, 1.2);
+    enemy.y += random(-0.8, 0.8);
+    if (millis() > enemy.dashCooldown && random() < 0.006 + eLevel * 0.0006) {
+      enemy.x += random([-35, 35]);
+      enemy.dashCooldown = millis() + 1200;
+    }
+    enemy.x = constrain(enemy.x, 30, width - 30);
+  } else if (enemy.pattern === "anchor") {
+    enemy.y += sin(frameCount * 0.03 + enemy.phase) * 0.6;
+  } else if (enemy.pattern === "macro") {
+    enemy.y += sin(frameCount * 0.05 + enemy.phase) * 1.1;
+    if (millis() > enemy.stalkCooldown) {
+      enemy.x = lerp(enemy.x, player.x, 0.08);
+      enemy.stalkCooldown = millis() + 1800 + random(1000);
     }
   } else {
     enemy.y += sin(frameCount * 0.05 * enemy.jiggle + enemy.x * 0.02) * 0.35;
-    if (enemy.type === "virus") {
+    if (enemy.type === "virus" || enemy.type === "capsule") {
       enemy.x += sin(frameCount * 0.04 + enemy.phase) * 0.5;
     }
   }
@@ -614,12 +853,13 @@ function maybeTriggerDive(enemy) {
   if (gameState !== "play") return;
   if (enemy.type !== "parasite") return;
   if (enemy.diveActive) return;
-  if (level < 2) return;
+  const eLevel = effectiveLevel();
+  if (eLevel < 2) return;
 
-  const diveChance = 0.0008 + (stage - 1) * 0.0004 + (level - 2) * 0.0005;
+  const diveChance = 0.0008 + (stage - 1) * 0.0004 + (eLevel - 2) * 0.0005;
   if (random() < diveChance) {
     enemy.diveActive = true;
-    enemy.diveSpeed = 3.3 + stage * 0.25 + level * 0.2;
+    enemy.diveSpeed = 3.3 + stage * 0.25 + eLevel * 0.2;
     enemy.diveWobble = random(TWO_PI);
   }
 }
@@ -650,18 +890,41 @@ function updatePowerups() {
 function maybeEnemyFire() {
   if (stage < 2 || gameState !== "play") return;
 
-  const difficultyRamp = (stage - 1) * 0.35 + (level - 1) * 0.4;
+  const eLevel = effectiveLevel();
+  const difficultyRamp = (stage - 1) * 0.35 + (eLevel - 1) * 0.4;
   const volleyChance = 0.0035 + difficultyRamp * 0.0015;
   if (random() > volleyChance) return;
 
-  const shooters = min(enemies.length, 1 + floor((stage + level) / 3));
-  const pick = shuffle([...enemies]).slice(0, shooters);
+  const shooters = min(enemies.length, 1 + floor((stage + eLevel) / 3));
+  const weighted = [];
+  for (const e of enemies) {
+    let weight = 1;
+    if (e.type === "sporeLauncher") weight += 2;
+    else if (e.type === "mutant" || e.type === "macroparasite") weight += 1;
+    for (let i = 0; i < weight; i++) weighted.push(e);
+  }
+
+  const pick = [];
+  for (const e of shuffle(weighted)) {
+    if (!pick.includes(e)) {
+      pick.push(e);
+    }
+    if (pick.length >= shooters) break;
+  }
+
+  const baseVy = 2.4 + stage * 0.25 + eLevel * 0.2;
   for (let e of pick) {
-    enemyBullets.push({
+    const bullet = {
       x: e.x,
       y: e.y + e.h / 2,
-      vy: 2.4 + stage * 0.25 + level * 0.2
-    });
+      vy: baseVy
+    };
+    if (e.type === "sporeLauncher") {
+      bullet.vy = baseVy * 0.85;
+      bullet.swayPhase = random(TWO_PI);
+      bullet.swayAmp = 1.6;
+    }
+    enemyBullets.push(bullet);
   }
 }
 
@@ -748,7 +1011,12 @@ function handleCollisions() {
 }
 
 function maybeDropPowerup(enemy) {
-  const dropChance = enemy.type === "virus" ? 0.35 : enemy.type === "parasite" ? 0.25 : 0.15;
+  let dropChance = 0.15;
+  if (enemy.type === "virus" || enemy.type === "mutant") dropChance = 0.35;
+  else if (enemy.type === "parasite" || enemy.type === "swarm" || enemy.type === "sporeLauncher") dropChance = 0.25;
+  else if (enemy.type === "capsule" || enemy.type === "helminth") dropChance = 0.2;
+  else if (enemy.type === "macroparasite") dropChance = 1;
+  else if (enemy.type === "spore") dropChance = 0.12;
   if (random() < dropChance) {
     const kind = random() < 0.55 ? "rapid" : "shield";
     powerups.push({
@@ -892,6 +1160,18 @@ function spawnEngulfParticles(x, y, type) {
     baseCol = [200, 140, 255];
   } else if (type === "bacteria") {
     baseCol = [120, 255, 160];
+  } else if (type === "capsule") {
+    baseCol = [140, 220, 240];
+  } else if (type === "spore" || type === "sporeLauncher") {
+    baseCol = [255, 190, 120];
+  } else if (type === "swarm") {
+    baseCol = [170, 230, 220];
+  } else if (type === "helminth") {
+    baseCol = [240, 200, 120];
+  } else if (type === "mutant") {
+    baseCol = [120, 200, 230];
+  } else if (type === "macroparasite") {
+    baseCol = [210, 110, 50];
   } else if (type === "shield") {
     baseCol = [120, 255, 220];
   } else {
