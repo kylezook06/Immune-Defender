@@ -778,6 +778,8 @@ function loseLife() {
 }
 
 function checkWinLose() {
+  if (gameState !== "play") return;
+
   if (enemies.length === 0) {
     refreshSounds();
     registerMemoryCells();
