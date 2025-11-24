@@ -18,15 +18,16 @@ All drawn with simple shapes and colors to feel like an 80s arcade game.
 - **Visual clarity:** Shield aura around the player and distinct icon shapes for the two power-ups.
 - **Audio-ready:** Torpedo launch shots and an implosion stinger when you lose a life (use the optional `p5.sound.min.js` or the p5.sound CDN and keep the `.wav` files alongside `sketch.js` or in an `assets/` folder).
 - **Immunology flair:**
-  - Color-coded, level-gated pathogens: core bacteria/viruses/parasites at Level 1, dive-bombing parasites at Level 2, encapsulated bacteria at Level 3, drifting spore mines at Level 4, orbiting swarm clusters at Level 5, snaking helminths at Level 6, mutating jitter viruses at Level 7, spore-launching artillery at Level 8, and macroparasite mini-bosses at Level 9 and beyond.
+  - Color-coded, level-gated pathogens: core bacteria/viruses at Level 1, parasites join at Level 2 with dive-bomb behavior, encapsulated bacteria at Level 3, drifting spore mines at Level 4, orbiting swarm clusters at Level 5, snaking helminths at Level 6, mutating jitter viruses at Level 7, spore-launching artillery at Level 8, and macroparasite mini-bosses at Level 9 and beyond.
   - Memory cells weaken pathogen types each time you clear a wave.
   - A side-panel highlights neutrophils/B-cells/T-cells/memory cells as power-ups trigger.
+  - Persistent high score tracking with an on-screen callout the moment you beat your best run.
 
 ### How to play
 
 1. Paste `sketch.js` into the [p5.js web editor](https://editor.p5js.org/) and press the **Play** button.
 2. Use `←` / `→` to move and hold **Space** to stream shots (faster during an antibody boost).
-3. Survive as many infections as you can: each infection is six stages, then the next level starts with denser, faster enemies and harsher counterfire. Collect power-ups as they drift down to gain rapid fire or a protective bubble. Lose all three lives and the run ends—chase that high score!
+3. Survive as many infections as you can: each infection is six stages, then the next level starts with denser, faster enemies and harsher counterfire. Collect power-ups as they drift down to gain rapid fire or a protective bubble. Lose all three lives and the run ends—chase that high score (which persists between runs)!
 
 ### Sound assets
 

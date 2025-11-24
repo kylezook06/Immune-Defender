@@ -11,6 +11,11 @@ let enemyBullets = [];
 let shootSounds = [];
 let implosionSound;
 let currentWaveTypes = new Set();
+let highScore = 0;
+let newHighScore = false;
+let newHighScoreTimer = 0;
+
+const highScoreKey = "immuneDefenderHighScore";
 
 const memoryCells = {
   bacteria: 0,
@@ -67,6 +72,18 @@ function buildSoundPath(file) {
   return soundBasePath + file;
 }
 
+function initHighScore() {
+  try {
+    const stored = localStorage.getItem(highScoreKey);
+    if (stored) {
+      const parsed = int(stored);
+      if (!isNaN(parsed)) highScore = parsed;
+    }
+  } catch (err) {
+    console.warn("High score storage unavailable", err);
+  }
+}
+
 function preload() {
   if (typeof loadSound !== "function") {
     console.warn("p5.sound is not available; skipping audio setup.");
@@ -93,6 +110,7 @@ function setup() {
   createCanvas(800, 600);
   textFont("monospace");
   initStars();
+  initHighScore();
   resetGame();
 }
 
@@ -125,6 +143,7 @@ function resetGame() {
   rapidFire.active = false;
   shield.active = false;
   respawnTimer = 0;
+  newHighScore = false;
   statusPanel.title = "Neutrophil";
   statusPanel.text = "Frontline phagocytes fire engulfing bursts.";
   statusPanel.timer = millis();
@@ -249,7 +268,7 @@ function pickEnemyType(eLevel = effectiveLevel()) {
   const pool = [
     { type: "bacteria", weight: 0.22, unlock: 1 },
     { type: "virus", weight: 0.2, unlock: 1 },
-    { type: "parasite", weight: 0.16, unlock: 1 },
+    { type: "parasite", weight: 0.16, unlock: 2 },
     { type: "capsule", weight: 0.14, unlock: 3 },
     { type: "spore", weight: 0.12, unlock: 4 },
     { type: "swarm", weight: 0.12, unlock: 5 },
@@ -398,6 +417,11 @@ function drawHud() {
   text("LEVEL: " + level, 16, 54);
   text("STAGE: " + stage + "/" + stagesPerLevel, 16, 76);
 
+  push();
+  textAlign(RIGHT, TOP);
+  text("HIGH: " + highScore, width - 16, 10);
+  pop();
+
   if (rapidFire.active) {
     fill(180, 230, 255);
     text("ANTIBODY BOOST", 16, 98);
@@ -412,6 +436,15 @@ function drawHud() {
   }
 
   drawStatusPanel();
+
+  if (newHighScore && millis() - newHighScoreTimer < 3600) {
+    fill(255, 230, 120);
+    textAlign(CENTER, TOP);
+    textSize(18);
+    text("NEW HIGH SCORE ACHIEVED!", width / 2, 12);
+  } else if (newHighScore && millis() - newHighScoreTimer >= 3600) {
+    newHighScore = false;
+  }
 }
 
 function drawStatusPanel() {
@@ -954,9 +987,9 @@ function handleCollisions() {
         if (e.hp <= 0) {
           maybeDropPowerup(e);
           enemies.splice(j, 1);
-          score += 100 + stage * 10 + (level - 1) * 20;
+          addScore(100 + stage * 10 + (level - 1) * 20);
         } else {
-          score += 40 + stage * 4 + (level - 1) * 8;
+          addScore(40 + stage * 4 + (level - 1) * 8);
         }
         break;
       }
@@ -1149,6 +1182,24 @@ function playImplosionSound() {
   if (!implosionSound) return;
   if (!implosionSound.isLoaded || implosionSound.isLoaded()) {
     implosionSound.play();
+  }
+}
+
+function saveHighScore() {
+  try {
+    localStorage.setItem(highScoreKey, String(highScore));
+  } catch (err) {
+    console.warn("Unable to save high score", err);
+  }
+}
+
+function addScore(amount) {
+  score += amount;
+  if (score > highScore) {
+    highScore = score;
+    newHighScore = true;
+    newHighScoreTimer = millis();
+    saveHighScore();
   }
 }
 
