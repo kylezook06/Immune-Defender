@@ -1278,6 +1278,11 @@ function keyPressed() {
     tryShoot();
   }
 
+  if (key === "0" && keyIsDown(CONTROL) && keyIsDown(SHIFT)) {
+    secretLevelSelect();
+    return;
+  }
+
   if (keyCode === ENTER) {
     if (gameState === "title" || gameState === "gameover") {
       resetGame();
@@ -1299,4 +1304,35 @@ function tryShoot() {
 
   playShootSound();
   lastShotTime = now;
+}
+
+function secretLevelSelect() {
+  const input = prompt("Secret level select (1-9): enter target level", level);
+  if (input === null) return;
+
+  const parsed = int(input.trim());
+  if (isNaN(parsed)) {
+    statusPanel.title = "Debug: invalid level";
+    statusPanel.text = "Enter a number between 1 and 9.";
+    statusPanel.timer = millis();
+    return;
+  }
+
+  const targetLevel = constrain(parsed, 1, 9);
+  level = targetLevel;
+  stage = 1;
+  enemyDir = 1;
+  respawnTimer = 0;
+  if (lives <= 0) lives = 3;
+  gameState = "play";
+  bullets = [];
+  powerups = [];
+  enemyBullets = [];
+  currentWaveTypes = new Set();
+  refreshSounds();
+  spawnWave();
+
+  statusPanel.title = "Level jump";
+  statusPanel.text = `Ctrl+Shift+0: testing Level ${level}, Stage ${stage}`;
+  statusPanel.timer = millis();
 }
