@@ -15,6 +15,7 @@ let highScore = 0;
 let newHighScore = false;
 let newHighScoreTimer = 0;
 let detachedSpores = 0;
+let touchFiring = false;
 
 const highScoreKey = "immuneDefenderHighScore";
 
@@ -148,6 +149,7 @@ function resetGame() {
   shield.active = false;
   respawnTimer = 0;
   newHighScore = false;
+  touchFiring = false;
   statusPanel.title = "Neutrophil";
   statusPanel.text = "Frontline phagocytes fire engulfing bursts.";
   statusPanel.timer = millis();
@@ -840,9 +842,18 @@ function handleInput() {
   if (keyIsDown(RIGHT_ARROW)) {
     player.x += player.speed;
   }
+
+  if (touchFiring && touches && touches.length > 0) {
+    const tx = touches[0].x;
+    player.x = tx;
+  }
   player.x = constrain(player.x, 30, width - 30);
 
   if (keyIsDown(32)) {
+    tryShoot();
+  }
+
+  if (touchFiring) {
     tryShoot();
   }
 }
@@ -1453,4 +1464,25 @@ function secretLevelSelect() {
   statusPanel.title = "Level jump";
   statusPanel.text = `Ctrl+Shift+0: testing Level ${level}, Stage ${stage}`;
   statusPanel.timer = millis();
+}
+
+function touchStarted() {
+  touchFiring = true;
+
+  if (gameState === "title" || gameState === "gameover") {
+    resetGame();
+    gameState = "play";
+  }
+
+  return false;
+}
+
+function touchMoved() {
+  touchFiring = true;
+  return false;
+}
+
+function touchEnded() {
+  touchFiring = false;
+  return false;
 }
