@@ -20,6 +20,8 @@ let canvasEl;
 let designWidth = 800;
 let designHeight = 600;
 let rotateHint = false;
+let rotateHintStart = 0;
+const rotateHintOverlayDuration = 15000;
 
 const highScoreKey = "immuneDefenderHighScore";
 
@@ -115,6 +117,7 @@ function preload() {
 
 function setup() {
   canvasEl = createCanvas(designWidth, designHeight);
+  pixelDensity(1);
   textFont("monospace");
   setupLayout();
   initStars();
@@ -191,8 +194,14 @@ function setupLayout() {
   document.body.style.display = "flex";
   document.body.style.justifyContent = "center";
   document.body.style.alignItems = "center";
+  document.body.style.overflow = "hidden";
+  document.documentElement.style.overflow = "hidden";
   if (canvasEl) {
     canvasEl.style("display", "block");
+    canvasEl.style("max-width", "100vw");
+    canvasEl.style("max-height", "100vh");
+    canvasEl.style("object-fit", "contain");
+    canvasEl.style("touch-action", "none");
   }
   applyCanvasLayout();
 }
@@ -204,7 +213,14 @@ function applyCanvasLayout() {
   const cssHeight = designHeight * scale;
   canvasEl.style("width", `${cssWidth}px`);
   canvasEl.style("height", `${cssHeight}px`);
-  rotateHint = windowHeight > windowWidth;
+  const shouldShowHint = windowHeight > windowWidth;
+  if (shouldShowHint && !rotateHint) {
+    rotateHintStart = millis();
+  }
+  if (!shouldShowHint) {
+    rotateHintStart = 0;
+  }
+  rotateHint = shouldShowHint;
 }
 
 function spawnWave() {
@@ -497,7 +513,8 @@ function draw() {
   drawScanlines();
 
   if (rotateHint) {
-    drawRotateHint();
+    const age = rotateHintStart ? millis() - rotateHintStart : millis();
+    drawRotateHint(age);
   }
 }
 
@@ -526,17 +543,31 @@ function drawScanlines() {
   }
 }
 
-function drawRotateHint() {
+function drawRotateHint(age) {
+  const overlayActive = age < rotateHintOverlayDuration;
   push();
   noStroke();
-  fill(0, 0, 0, 180);
-  rect(0, 0, width, height);
-  fill(255);
-  textAlign(CENTER, CENTER);
-  textSize(18);
-  text("Rotate to landscape for best fit", width / 2, height / 2 - 8);
-  textSize(12);
-  text("Drag to move • Hold to fire", width / 2, height / 2 + 12);
+  if (overlayActive) {
+    fill(0, 0, 0, 180);
+    rect(0, 0, width, height);
+    fill(255);
+    textAlign(CENTER, CENTER);
+    textSize(18);
+    text("Rotate to landscape for best fit", width / 2, height / 2 - 8);
+    textSize(12);
+    text("Drag to move • Hold to fire", width / 2, height / 2 + 12);
+  } else {
+    const barWidth = 220;
+    const barHeight = 40;
+    const x = width - barWidth - 12;
+    const y = 12;
+    fill(0, 0, 0, 120);
+    rect(x, y, barWidth, barHeight, 6);
+    fill(255);
+    textAlign(CENTER, CENTER);
+    textSize(12);
+    text("Tip: rotate for best fit", x + barWidth / 2, y + barHeight / 2);
+  }
   pop();
 }
 
