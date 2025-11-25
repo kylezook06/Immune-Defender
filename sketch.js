@@ -16,6 +16,7 @@ let newHighScore = false;
 let newHighScoreTimer = 0;
 let detachedSpores = 0;
 let touchFiring = false;
+let touchTargetX = null;
 let canvasEl;
 let designWidth = 800;
 let designHeight = 600;
@@ -158,6 +159,7 @@ function resetGame() {
   respawnTimer = 0;
   newHighScore = false;
   touchFiring = false;
+  touchTargetX = null;
   statusPanel.title = "Neutrophil";
   statusPanel.text = "Frontline phagocytes fire engulfing bursts.";
   statusPanel.timer = millis();
@@ -190,18 +192,23 @@ function initStars() {
 
 function setupLayout() {
   document.body.style.margin = "0";
-  document.body.style.backgroundColor = "#000";
-  document.body.style.display = "flex";
-  document.body.style.justifyContent = "center";
-  document.body.style.alignItems = "center";
+  document.body.style.backgroundColor = "rgb(5, 5, 20)";
+  document.body.style.position = "relative";
+  document.body.style.width = "100vw";
+  document.body.style.height = "100vh";
   document.body.style.overflow = "hidden";
+  document.body.style.display = "block";
   document.documentElement.style.overflow = "hidden";
   if (canvasEl) {
     canvasEl.style("display", "block");
+    canvasEl.style("position", "absolute");
+    canvasEl.style("left", "50%");
+    canvasEl.style("top", "50%");
+    canvasEl.style("transform", "translate(-50%, -50%)");
     canvasEl.style("max-width", "100vw");
     canvasEl.style("max-height", "100vh");
-    canvasEl.style("object-fit", "contain");
     canvasEl.style("touch-action", "none");
+    canvasEl.style("image-rendering", "pixelated");
   }
   applyCanvasLayout();
 }
@@ -913,6 +920,7 @@ function drawWaveLabel() {
 // ---------- UPDATES ----------
 
 function handleInput() {
+  // Keyboard movement
   if (keyIsDown(LEFT_ARROW)) {
     player.x -= player.speed;
   }
@@ -920,9 +928,18 @@ function handleInput() {
     player.x += player.speed;
   }
 
+  // Touch movement with offset + easing
   if (touchFiring && touches && touches.length > 0) {
     const tx = touches[0].x;
-    player.x = tx;
+    const OFFSET_X = 60;
+    touchTargetX = tx - OFFSET_X;
+  } else {
+    touchTargetX = null;
+  }
+
+  if (touchTargetX !== null) {
+    const EASING = 0.25;
+    player.x = lerp(player.x, touchTargetX, EASING);
   }
   player.x = constrain(player.x, 30, width - 30);
 
@@ -1553,7 +1570,7 @@ function secretLevelSelect() {
 function touchStarted() {
   touchFiring = true;
 
-  if (gameState === "title" || gameState === "gameover") {
+  if (gameState === "title" || gameState === "gameover" || gameState === "win") {
     resetGame();
     gameState = "play";
   }
@@ -1568,6 +1585,7 @@ function touchMoved() {
 
 function touchEnded() {
   touchFiring = false;
+  touchTargetX = null;
   return false;
 }
 
