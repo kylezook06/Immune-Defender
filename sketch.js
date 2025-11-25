@@ -16,6 +16,10 @@ let newHighScore = false;
 let newHighScoreTimer = 0;
 let detachedSpores = 0;
 let touchFiring = false;
+let canvasEl;
+let designWidth = 800;
+let designHeight = 600;
+let rotateHint = false;
 
 const highScoreKey = "immuneDefenderHighScore";
 
@@ -110,8 +114,9 @@ function preload() {
 }
 
 function setup() {
-  createCanvas(800, 600);
+  canvasEl = createCanvas(designWidth, designHeight);
   textFont("monospace");
+  setupLayout();
   initStars();
   initHighScore();
   resetGame();
@@ -178,6 +183,28 @@ function initStars() {
       speed: random(0.3, 1.0)
     });
   }
+}
+
+function setupLayout() {
+  document.body.style.margin = "0";
+  document.body.style.backgroundColor = "#000";
+  document.body.style.display = "flex";
+  document.body.style.justifyContent = "center";
+  document.body.style.alignItems = "center";
+  if (canvasEl) {
+    canvasEl.style("display", "block");
+  }
+  applyCanvasLayout();
+}
+
+function applyCanvasLayout() {
+  if (!canvasEl) return;
+  const scale = min(windowWidth / designWidth, windowHeight / designHeight);
+  const cssWidth = designWidth * scale;
+  const cssHeight = designHeight * scale;
+  canvasEl.style("width", `${cssWidth}px`);
+  canvasEl.style("height", `${cssHeight}px`);
+  rotateHint = windowHeight > windowWidth;
 }
 
 function spawnWave() {
@@ -417,6 +444,7 @@ function enemyHpFor(type, eLevel = effectiveLevel()) {
 // ---------- MAIN LOOP ----------
 
 function draw() {
+  applyCanvasLayout();
   drawBackground();
 
   if (gameState === "title") {
@@ -467,6 +495,10 @@ function draw() {
   }
 
   drawScanlines();
+
+  if (rotateHint) {
+    drawRotateHint();
+  }
 }
 
 // ---------- DRAWING ----------
@@ -492,6 +524,20 @@ function drawScanlines() {
   for (let y = 0; y < height; y += 3) {
     line(0, y, width, y);
   }
+}
+
+function drawRotateHint() {
+  push();
+  noStroke();
+  fill(0, 0, 0, 180);
+  rect(0, 0, width, height);
+  fill(255);
+  textAlign(CENTER, CENTER);
+  textSize(18);
+  text("Rotate to landscape for best fit", width / 2, height / 2 - 8);
+  textSize(12);
+  text("Drag to move • Hold to fire", width / 2, height / 2 + 12);
+  pop();
 }
 
 function drawHud() {
@@ -1401,6 +1447,13 @@ function keyPressed() {
   }
 }
 
+function mousePressed() {
+  if (gameState === "title" || gameState === "gameover") {
+    resetGame();
+    gameState = "play";
+  }
+}
+
 function isLevelSelectCombo() {
   const normalized = key.toLowerCase();
   const ctrl = keyIsDown(CONTROL);
@@ -1485,4 +1538,8 @@ function touchMoved() {
 function touchEnded() {
   touchFiring = false;
   return false;
+}
+
+function windowResized() {
+  applyCanvasLayout();
 }
