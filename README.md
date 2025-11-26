@@ -25,6 +25,7 @@ All drawn with simple shapes and colors to feel like an 80s arcade game.
   - Memory cells weaken pathogen types each time you clear a wave.
   - A side-panel highlights neutrophils/B-cells/T-cells/memory cells as power-ups trigger.
   - Persistent high score tracking with an on-screen callout the moment you beat your best run.
+  - Optional shared leaderboard: drop a tiny `scores.php` + `scores.json` next to the sketch to share top runs across players.
   - Immune surges grant an extra life every 50,000 points.
   - Hidden playtest shortcut: press **Ctrl + Shift + 0** (or fallbacks **Ctrl + Shift + L**, **Ctrl + Alt + L**, **Ctrl + Alt + `** if your browser intercepts zoom shortcuts) to jump straight to a chosen level (Stage 1), capped at Level 9 for balanced tuning.
 
@@ -39,3 +40,12 @@ All drawn with simple shapes and colors to feel like an 80s arcade game.
 - Add `p5.sound.min.js` alongside `sketch.js` (or include the p5.sound library in the web editor) so the sound helpers are available.
 - Drop the `.wav` files (`Torpedo-Launch-01.wav`, `Torpedo-Launch-02.wav`, `Torpedo-Launch-03.wav`, `Torpedo-Launch-04.wav`, `Underwater-Implosion-1.wav`) right beside `sketch.js` **or** put them in an `assets/` folder if you prefer to keep things tidy. In the latter case, set `soundBasePath` near the top of `sketch.js` to `"assets/"`. The repository ignores these binaries so contributors can keep the branch lightweight; the game will run silently if the files are missing.
 - If you prefer hosted files (e.g., from the p5 editor asset bucket), pass the full URL into the sound loader—absolute URLs will be respected and won't be double-prefixed.
+
+### Optional shared leaderboard (PHP + JSON)
+
+For a simple server-backed leaderboard in a WordPress (or any PHP-capable) folder, place these files alongside `index.html`/`sketch.js`:
+
+- `scores.php` — accepts `GET` to read scores and `POST` with `{ "name": "ABC", "score": 12345 }` to submit. It keeps the top 20 entries and writes them to a JSON file.
+- `scores.json` — start with `[]` and make it writable by PHP.
+
+When the run ends, the game will prompt for initials and post the score. The title/game-over screens show the top entries returned by `scores.php`. If the backend isn’t present, the game will quietly skip submissions and just keep the local high score.

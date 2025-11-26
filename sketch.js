@@ -14,6 +14,7 @@ let currentWaveTypes = new Set();
 let highScore = 0;
 let newHighScore = false;
 let newHighScoreTimer = 0;
+let leaderboard = [];
 let detachedSpores = 0;
 let touchFiring = false;
 let touchTargetX = null;
@@ -94,6 +95,30 @@ function initHighScore() {
   }
 }
 
+function fetchScores() {
+  return fetch("scores.php")
+    .then(res => res.json())
+    .then(data => (Array.isArray(data) ? data : []))
+    .catch(err => {
+      console.warn("Fetch scores failed", err);
+      return [];
+    });
+}
+
+function submitScore(name, value) {
+  return fetch("scores.php", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, score: value })
+  })
+    .then(res => res.json())
+    .then(data => (Array.isArray(data) ? data : []))
+    .catch(err => {
+      console.error("Submit score failed", err);
+      return leaderboard;
+    });
+}
+
 function preload() {
   if (typeof loadSound !== "function") {
     console.warn("p5.sound is not available; skipping audio setup.");
@@ -123,6 +148,9 @@ function setup() {
   setupLayout();
   initStars();
   initHighScore();
+  fetchScores().then(scores => {
+    leaderboard = scores;
+  });
   resetGame();
 }
 
@@ -875,6 +903,31 @@ function drawPowerups() {
   }
 }
 
+function drawLeaderboard(x, y) {
+  push();
+  fill(200);
+  textAlign(LEFT, TOP);
+  textSize(14);
+  text("TOP SCORES", x, y);
+  let offsetY = y + 20;
+
+  const entries = leaderboard && Array.isArray(leaderboard) ? leaderboard : [];
+  const maxRows = 10;
+  if (!entries.length) {
+    text("No scores yet", x, offsetY);
+    pop();
+    return;
+  }
+
+  for (let i = 0; i < entries.length && i < maxRows; i++) {
+    const entry = entries[i];
+    const label = `${i + 1}. ${entry.name || "Anon"} — ${entry.score || 0}`;
+    text(label, x, offsetY);
+    offsetY += 16;
+  }
+  pop();
+}
+
 function drawTitleScreen() {
   fill(255);
   textAlign(CENTER, CENTER);
@@ -884,6 +937,8 @@ function drawTitleScreen() {
   textSize(16);
   text("You are a white blood cell defending the bloodstream.", width / 2, height / 2);
   text("← → to move   •   SPACE to engulf pathogens   •   ENTER to start", width / 2, height / 2 + 40);
+
+  drawLeaderboard(width - 260, 100);
 }
 
 function drawEndScreen(mainText, subText) {
@@ -893,6 +948,8 @@ function drawEndScreen(mainText, subText) {
   text(mainText, width / 2, height / 2 - 20);
   textSize(16);
   text(subText, width / 2, height / 2 + 20);
+
+  drawLeaderboard(width - 260, height / 2 + 60);
 }
 
 function drawRespawnMessage() {
@@ -1279,10 +1336,27 @@ function loseLife() {
   enemyDir = 1;
   initPlayer();
   if (lives <= 0) {
-    gameState = "gameover";
+    onGameOver();
   } else {
     respawnTimer = millis();
     gameState = "respawn";
+  }
+}
+
+function onGameOver() {
+  gameState = "gameover";
+  let name = null;
+  if (typeof prompt === "function") {
+    const input = prompt("Enter your name/initials for the leaderboard:", "Anon");
+    if (input !== null && input.trim() !== "") {
+      name = input.trim().slice(0, 16);
+    }
+  }
+
+  if (name) {
+    submitScore(name, score).then(scores => {
+      leaderboard = scores;
+    });
   }
 }
 
