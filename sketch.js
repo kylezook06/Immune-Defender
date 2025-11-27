@@ -96,7 +96,9 @@ function initHighScore() {
 }
 
 function fetchScores() {
-  return fetch("scores.php")
+  const url = "scores.php?ts=" + Date.now();
+
+  return fetch(url, { cache: "no-store" })
     .then(res => res.json())
     .then(data => (Array.isArray(data) ? data : []))
     .catch(err => {
@@ -106,9 +108,12 @@ function fetchScores() {
 }
 
 function submitScore(name, value) {
-  return fetch("scores.php", {
+  const url = "scores.php?ts=" + Date.now();
+
+  return fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    cache: "no-store",
     body: JSON.stringify({ name, score: value })
   })
     .then(res => res.json())
