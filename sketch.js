@@ -12,6 +12,7 @@ let shootSounds = [];
 let implosionSound;
 let currentWaveTypes = new Set();
 let highScore = 0;
+let localBest = 0;
 let newHighScore = false;
 let newHighScoreTimer = 0;
 let leaderboard = [];
@@ -25,7 +26,7 @@ let rotateHint = false;
 let rotateHintStart = 0;
 const rotateHintOverlayDuration = 15000;
 
-const highScoreKey = "immuneDefenderHighScore";
+const highScoreKey = "immuneDefenderHighScore"; // also used for the local best fallback
 
 const memoryCells = {
   bacteria: 0,
@@ -88,7 +89,10 @@ function initHighScore() {
     const stored = localStorage.getItem(highScoreKey);
     if (stored) {
       const parsed = int(stored);
-      if (!isNaN(parsed)) highScore = parsed;
+      if (!isNaN(parsed)) {
+        localBest = parsed;
+        highScore = max(highScore, parsed);
+      }
     }
   } catch (err) {
     console.warn("High score storage unavailable", err);
@@ -124,6 +128,19 @@ function submitScore(name, value) {
     });
 }
 
+function syncHighScoreFromLeaderboard(scores) {
+  if (Array.isArray(scores) && scores.length) {
+    const top = int(scores[0]?.score ?? 0);
+    if (!isNaN(top)) {
+      highScore = top;
+      return;
+    }
+  }
+
+  // fallback to the personal best if the leaderboard is empty/unavailable
+  highScore = max(highScore, localBest);
+}
+
 function preload() {
   if (typeof loadSound !== "function") {
     console.warn("p5.sound is not available; skipping audio setup.");
@@ -155,6 +172,7 @@ function setup() {
   initHighScore();
   fetchScores().then(scores => {
     leaderboard = scores;
+    syncHighScoreFromLeaderboard(scores);
   });
   resetGame();
 }
@@ -623,7 +641,10 @@ function drawHud() {
 
   push();
   textAlign(RIGHT, TOP);
-  text("HIGH: " + highScore, width - 16, 10);
+  text("GLOBAL HIGH: " + highScore, width - 16, 10);
+  if (localBest > 0) {
+    text("LOCAL BEST: " + localBest, width - 16, 30);
+  }
   pop();
 
   if (rapidFire.active) {
@@ -659,7 +680,7 @@ function drawStatusPanel() {
   }
 
   const panelX = width - 210;
-  const panelY = 16;
+  const panelY = 64;
   push();
   noStroke();
   fill(0, 30, 40, 140);
@@ -1361,6 +1382,11 @@ function onGameOver() {
   if (name) {
     submitScore(name, score).then(scores => {
       leaderboard = scores;
+      syncHighScoreFromLeaderboard(scores);
+      if (score > localBest) {
+        localBest = score;
+        saveHighScore();
+      }
     });
   }
 }
@@ -1472,7 +1498,7 @@ function playImplosionSound() {
 
 function saveHighScore() {
   try {
-    localStorage.setItem(highScoreKey, String(highScore));
+    localStorage.setItem(highScoreKey, String(localBest));
   } catch (err) {
     console.warn("Unable to save high score", err);
   }
@@ -1480,11 +1506,15 @@ function saveHighScore() {
 
 function addScore(amount) {
   score += amount;
+  if (score > localBest) {
+    localBest = score;
+    saveHighScore();
+  }
+
   if (score > highScore) {
     highScore = score;
     newHighScore = true;
     newHighScoreTimer = millis();
-    saveHighScore();
   }
 
   while (score >= nextExtraLifeScore) {

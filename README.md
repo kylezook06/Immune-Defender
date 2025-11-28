@@ -25,6 +25,7 @@ All drawn with simple shapes and colors to feel like an 80s arcade game.
   - Memory cells weaken pathogen types each time you clear a wave.
   - A side-panel highlights neutrophils/B-cells/T-cells/memory cells as power-ups trigger.
   - Persistent high score tracking with an on-screen callout the moment you beat your best run.
+  - HUD shows the shared leaderboard’s top score (when available) alongside your local best so you can compare global vs personal records.
   - Optional shared leaderboard: drop a tiny `scores.php` + `scores.json` next to the sketch to share top runs across players.
   - Immune surges grant an extra life every 50,000 points.
   - Hidden playtest shortcut: press **Ctrl + Shift + 0** (or fallbacks **Ctrl + Shift + L**, **Ctrl + Alt + L**, **Ctrl + Alt + `** if your browser intercepts zoom shortcuts) to jump straight to a chosen level (Stage 1), capped at Level 9 for balanced tuning.
