@@ -1,6 +1,8 @@
 <?php
 // scores.php
 header('Content-Type: application/json');
+// Guard against intermediary caching so clients always see the latest leaderboard.
+header('Cache-Control: no-store, max-age=0, must-revalidate');
 
 $file = __DIR__ . '/scores.json';
 if (!file_exists($file)) {
