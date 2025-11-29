@@ -18,10 +18,11 @@ All drawn with simple shapes and colors to feel like an 80s arcade game.
 - **Visual clarity:** Shield aura around the player and distinct icon shapes for the two power-ups.
 - **Audio-ready:** Torpedo launch shots and an implosion stinger when you lose a life (use the optional `p5.sound.min.js` or the p5.sound CDN and keep the `.wav` files alongside `sketch.js` or in an `assets/` folder).
 - **Touch friendly:** Drag to steer (with a slight offset so your finger isn’t on top of the cell) and hold to fire; keyboard controls still work on desktop. The canvas scales to fit the viewport, clamps overflow, and shows a quick rotate hint in portrait that fades to a small corner reminder after 15 seconds.
+- **Pause anywhere:** Press **P** on desktop or double-tap on mobile to pause/resume without interrupting the run.
 - **Immunology flair:**
   - Color-coded, level-gated pathogens: core bacteria/viruses at Level 1, parasites join at Level 2 with dive-bomb behavior, encapsulated bacteria at Level 3, drifting spore mines at Level 4, orbiting swarm clusters at Level 5, snaking helminths at Level 6, mutating jitter viruses at Level 7, spore-launching artillery at Level 8, and macroparasite mini-bosses at Level 9 and beyond.
   - Formations ease up on Stage 1 of each level, keep parasites out until Stage 2, and vary dive-bomber density by stage (light at 2-1, heavier mid-stage, lighter again at 5-1) so the screen stays readable while new variants rotate in.
-  - Spore mines now detach one-at-a-time when introduced, with slower drifts and only a few falling concurrently in late stages.
+  - Spore mines now detach one-at-a-time when introduced, with slower drifts and no more than three falling at once even in later stages.
   - Memory cells weaken pathogen types each time you clear a wave.
   - A side-panel highlights neutrophils/B-cells/T-cells/memory cells as power-ups trigger.
   - Persistent high score tracking with an on-screen callout the moment you beat your best run.
@@ -33,7 +34,7 @@ All drawn with simple shapes and colors to feel like an 80s arcade game.
 ### How to play
 
 1. Paste `sketch.js` into the [p5.js web editor](https://editor.p5js.org/) and press the **Play** button.
-2. Use `←` / `→` to move and hold **Space** to stream shots (faster during an antibody boost). On touchscreens, tap to start/restart, drag to steer the cell (offset so your finger sits just to the right), and keep your finger down to fire.
+2. Use `←` / `→` to move and hold **Space** to stream shots (faster during an antibody boost). Press **P** to pause/resume. On touchscreens, tap to start/restart, drag to steer the cell (offset so your finger sits just to the right), keep your finger down to fire, and double-tap to pause/resume.
 3. Survive as many infections as you can: each infection is six stages, then the next level starts with denser, faster enemies and harsher counterfire. Collect power-ups as they drift down to gain rapid fire or a protective bubble. Earn an extra life every 50,000 points. Lose all lives and the run ends—chase that high score (which persists between runs)!
 
 ### Sound assets

@@ -19,6 +19,7 @@ let leaderboard = [];
 let detachedSpores = 0;
 let touchFiring = false;
 let touchTargetX = null;
+let lastTapTime = 0;
 let canvasEl;
 let designWidth = 800;
 let designHeight = 600;
@@ -43,7 +44,7 @@ const memoryCells = {
 
 let enemyDir = 1; // horizontal direction of enemy swarm
 let enemySpeed = 1.2;
-let gameState = "title"; // "title", "play", "respawn", "gameover"
+let gameState = "title"; // "title", "play", "pause", "respawn", "gameover"
 
 const respawnDuration = 3000; // ms delay after losing a life
 let respawnTimer = 0;
@@ -546,6 +547,15 @@ function draw() {
     drawPowerups();
     drawParticles();
     drawWaveLabel();
+  } else if (gameState === "pause") {
+    updateStars();
+    drawHud();
+    drawPlayer();
+    drawEnemies();
+    drawBullets();
+    drawPowerups();
+    drawParticles();
+    drawPauseOverlay();
   } else if (gameState === "respawn") {
     updateStars();
     updateParticles();
@@ -989,6 +999,17 @@ function drawRespawnMessage() {
   text(`Countdown: ${remaining}`, width / 2, height / 2 + 16);
 }
 
+function drawPauseOverlay() {
+  fill(0, 0, 0, 140);
+  rect(0, 0, width, height);
+  fill(255);
+  textAlign(CENTER, CENTER);
+  textSize(24);
+  text("Paused", width / 2, height / 2 - 10);
+  textSize(16);
+  text("Press P or double-tap to resume", width / 2, height / 2 + 16);
+}
+
 function drawWaveLabel() {
   const elapsed = millis() - announceTimer;
   if (elapsed < 1600) {
@@ -1003,6 +1024,8 @@ function drawWaveLabel() {
 // ---------- UPDATES ----------
 
 function handleInput() {
+  if (gameState === "pause") return;
+
   // Keyboard movement
   if (keyIsDown(LEFT_ARROW)) {
     player.x -= player.speed;
@@ -1032,6 +1055,17 @@ function handleInput() {
 
   if (touchFiring) {
     tryShoot();
+  }
+}
+
+function togglePause() {
+  if (gameState === "play") {
+    gameState = "pause";
+    touchFiring = false;
+    touchTargetX = null;
+  } else if (gameState === "pause") {
+    gameState = "play";
+    lastShotTime = millis();
   }
 }
 
@@ -1070,11 +1104,13 @@ function updateEnemies() {
   for (let e of enemies) {
     const moveScale = e.diveActive || (e.type === "spore" && e.detached) ? 0 : e.speedScale || 1;
     e.x += enemySpeed * enemyDir * moveScale;
-    minX = min(minX, e.x);
-    maxX = max(maxX, e.x);
+    if (!e.diveActive && !(e.type === "spore" && e.detached)) {
+      minX = min(minX, e.x);
+      maxX = max(maxX, e.x);
+    }
   }
 
-  if (minX < 30 || maxX > width - 30) {
+  if (isFinite(minX) && (minX < 30 || maxX > width - 30)) {
     enemyDir *= -1;
     for (let e of enemies) {
       e.y += 16;
@@ -1165,7 +1201,7 @@ function sporeDetachLimit() {
   if (stage < 4) return 0;
   if (stage < 5) return 1;
   if (stage < 6) return 2;
-  return 3;
+  return 3; // hard cap to keep at most three spores drifting at once
 }
 
 function maybeTriggerDive(enemy) {
@@ -1591,6 +1627,13 @@ function keyPressed() {
     tryShoot();
   }
 
+  if (key.toLowerCase() === "p") {
+    if (gameState === "play" || gameState === "pause") {
+      togglePause();
+      return;
+    }
+  }
+
   if (isLevelSelectCombo()) {
     secretLevelSelect();
     return;
@@ -1677,11 +1720,26 @@ function secretLevelSelect() {
 }
 
 function touchStarted() {
+  const now = millis();
+  const doubleTap = now - lastTapTime < 350;
+  lastTapTime = now;
+
+  if (doubleTap && (gameState === "play" || gameState === "pause")) {
+    togglePause();
+    touchFiring = gameState === "play";
+    touchTargetX = null;
+    return false;
+  }
+
   touchFiring = true;
 
   if (gameState === "title" || gameState === "gameover" || gameState === "win") {
     resetGame();
     gameState = "play";
+  }
+
+  if (gameState === "pause") {
+    togglePause();
   }
 
   return false;
