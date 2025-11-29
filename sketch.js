@@ -1117,7 +1117,7 @@ function applyEnemyMovement(enemy) {
     }
 
     if (enemy.detached) {
-      enemy.y += 0.6 + eLevel * 0.05;
+      enemy.y += (0.6 + eLevel * 0.05) * 0.5;
       enemy.x += sin(frameCount * 0.08 + enemy.phase) * 1.5;
       return;
     }
