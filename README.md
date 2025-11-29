@@ -13,7 +13,7 @@ All drawn with simple shapes and colors to feel like an 80s arcade game.
 
 - **Level/Stage progression:** Each infection has six stages; finish Stage 6 to roll into the next infection level with more pathogens and speed. Level-based scaling caps at Level 9 so the challenge plateaus while you chase a final high score.
 - **Pathogen counterfire:** Beginning at Stage 2, enemies fire back, ramping up rate and volley size as stages and levels climb.
-- **Two power-ups:** Antibody Boost (rapid fire) and a membrane **shield** that saves you from one collision or leak.
+- **Two power-ups:** Antibody Boost (rapid fire) and a membrane **shield** whose timer drains with each hit, letting you soak multiple shots while it lasts.
 - **HUD polish:** Level + stage counters, power-up timers, and a brief banner announcing the current stage/level.
 - **Visual clarity:** Shield aura around the player and distinct icon shapes for the two power-ups.
 - **Audio-ready:** Torpedo launch shots and an implosion stinger when you lose a life (use the optional `p5.sound.min.js` or the p5.sound CDN and keep the `.wav` files alongside `sketch.js` or in an `assets/` folder).
@@ -35,7 +35,7 @@ All drawn with simple shapes and colors to feel like an 80s arcade game.
 
 1. Paste `sketch.js` into the [p5.js web editor](https://editor.p5js.org/) and press the **Play** button.
 2. Use `←` / `→` to move and hold **Space** to stream shots (faster during an antibody boost). Press **P** to pause/resume. On touchscreens, tap to start/restart, drag to steer the cell (offset so your finger sits just to the right), keep your finger down to fire, and double-tap to pause/resume.
-3. Survive as many infections as you can: each infection is six stages, then the next level starts with denser, faster enemies and harsher counterfire. Collect power-ups as they drift down to gain rapid fire or a protective bubble. Earn an extra life every 50,000 points. Lose all lives and the run ends—chase that high score (which persists between runs)!
+3. Survive as many infections as you can: each infection is six stages, then the next level starts with denser, faster enemies and harsher counterfire. Collect power-ups as they drift down to gain rapid fire or a protective bubble—each pickup is worth 100 points. Earn an extra life every 50,000 points. Lose all lives and the run ends—chase that high score (which persists between runs)!
 
 ### Sound assets
 

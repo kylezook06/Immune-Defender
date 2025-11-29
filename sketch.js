@@ -1326,6 +1326,7 @@ function handleCollisions() {
     if (dist(pu.x, pu.y, player.x, player.y) < 30) {
       powerups.splice(i, 1);
       activatePowerup(pu.kind);
+      addScore(100);
     }
   }
 
@@ -1335,7 +1336,7 @@ function handleCollisions() {
     if (dist(eb.x, eb.y, player.x, player.y) < player.w / 2 + 4) {
       enemyBullets.splice(i, 1);
       if (shield.active) {
-        shield.active = false;
+        weakenShield(0.2);
         spawnEngulfParticles(player.x, player.y, "shield");
       } else {
         loseLife();
@@ -1383,6 +1384,29 @@ function maybeDropPowerup(enemy) {
       kind
     });
   }
+}
+
+function weakenShield(percentLoss) {
+  if (!shield.active) return false;
+
+  const elapsed = millis() - shield.timer;
+  const remaining = shield.duration - elapsed;
+  if (remaining <= 0) {
+    shield.active = false;
+    return false;
+  }
+
+  const clampedLoss = constrain(percentLoss, 0, 1);
+  const newRemaining = remaining * (1 - clampedLoss);
+
+  if (newRemaining <= 0) {
+    shield.active = false;
+    return false;
+  }
+
+  // Shift the timer so the remaining time matches the reduced duration.
+  shield.timer = millis() - (shield.duration - newRemaining);
+  return true;
 }
 
 function loseLife() {
@@ -1465,7 +1489,7 @@ function activatePowerup(kind) {
     shield.active = true;
     shield.timer = millis();
     statusPanel.title = "T-cells";
-    statusPanel.text = "T-cells reinforce your membrane, blocking the next hit.";
+    statusPanel.text = "T-cells reinforce your membrane; each hit drains the shield timer.";
     statusPanel.timer = millis();
   }
 }
